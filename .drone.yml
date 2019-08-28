@@ -1,0 +1,51 @@
+kind: pipeline
+name: default
+
+steps:
+- name: fetch
+  image: docker:git
+  commands:
+  - git fetch --tags
+
+- name: test
+  image: golang:latest
+  commands:
+  - go test -v -cover
+
+- name: build
+  image: golang:1.12
+  commands:
+  - pwd
+  - go version
+  - CGO_ENABLED=0 go build -o hello
+
+- name: docker_build_publish_dockerhub
+  image: plugins/docker
+  dockerfile: Dockerfile
+  settings:
+    repo: localcontainer/hello
+    auto_tag: true
+    username: 
+      from_secret: docker_username
+    password: 
+      from_secret: docker_password
+  when:
+    branch: master
+    status: [ success ]
+
+- name: deploy_docker_compose
+  image: appleboy/drone-ssh
+  settings:
+    host: 172.17.0.1
+    port: 22
+    username:
+      from_secret: ssh_username
+    password:
+      from_secret: ssh_password
+    script:
+      - cd /tmp/ && rm -rf hello && git clone http://git.service.io/joher/hello && cd hello/
+      - docker-compose pull hello  
+      - docker-compose up -d hello  
+  when:
+    branch: master
+    event: push

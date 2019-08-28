@@ -1,0 +1,16 @@
+version: '3'
+services:
+  hello: 
+    image: localcontainer/hello
+    container_name: hello
+    restart: always
+    ports:
+      - 9999:9999
+    labels:
+      - "traefik.backend=hello"
+      - "traefik.frontend.rule=Host:hello.service.io"
+      - "traefik.enable=true"
+      - "traefik.tags=ui"    
+
+
+
